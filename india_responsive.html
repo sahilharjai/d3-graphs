@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- India State Map  -->
+    <title>India Map</title>
+    <meta name="viewport" content="width=device-width">
+
+    <!--  Scripts  -->
+    <script type="text/javascript" src="d3.min.js"></script>
+    <script type="text/javascript" src="d3.geo.min.js"></script>
+    <script type="text/javascript" src="states.js"></script>
+    <script type="text/javascript" src="wealth.js"></script>
+    <script src="cities.js"></script>
+
+    <!--  Styles  -->  
+    <link type="text/css" rel="stylesheet" href="zcolorbrewer.css"/>
+    <style type="text/css">
+    svg {
+      background: #eee;
+      }
+      
+    #india {
+      fill: black;
+      opacity: .8;
+      stroke: #000000;
+      stroke-width: .8;
+      }
+
+  .tooltip {
+    position: relative;
+    display: inline-block;
+    border-bottom: 1px solid black; /* If you want dots under the hoverable text */
+    color: black;
+    padding: 5px 5px;
+    border-radius: 6px;
+    /* Position the tooltip text - see examples below! */
+    position: absolute;
+    z-index: 1;
+    opacity: 0.8;
+
+}
+
+    </style>
+  </head>
+  
+<body>
+  <div id="chart"></div>
+  <script type="text/javascript">
+    var proj,path,t,s,map,india,tooltip,responseScale;
+
+    var viewportWidth = window.innerWidth;
+    var viewportHeight = window.inneHeight/2;
+    var w = viewportWidth * .97;
+    var h = w/1.85;
+
+    var xScaleBigger = d3.scale.linear()
+                  .domain([300,1500])
+                  .range([-700,-1300]);
+
+    var xScaleSmaller = d3.scale.linear()
+                  .domain([300,1500])
+                  .range([-890,-1300]);
+
+    var yScale = d3.scale.linear()
+                  .domain([300,1500])
+                  .range([600,780]);
+
+    var graphScale = d3.scale.linear()
+                      .domain([350,1500])
+                      .range([4800,6700]);
+
+
+
+    function init()
+    {
+     
+
+        proj = d3.geo.mercator();
+        path = d3.geo.path().projection(proj);
+        /*t = proj.translate(); // the projection's default translation
+        s = proj.scale() // the projection's default scale*/
+        map = d3.select("#chart").append("svg:svg")
+
+        india = map.append("svg:g")
+            .attr("id", "india");
+      
+
+        tooltip = d3.select("body")
+                  .append("div")
+                  .style("position", "absolute")
+                  .classed("tooltip",true)
+                  .style("z-index", "10")
+                  .style("visibility", "hidden")
+                  .style("background", "white")
+                  .text("");
+
+        responseScale = d3.scale.linear()
+            .domain(d3.extent(cities.features,function(d){
+              return d.properties.jobs;
+            }))
+            .range([5,20]);
+
+      render();
+
+    }
+
+
+    function render()
+    {
+      updateDimensions(window.innerWidth);
+
+      map.attr("width", "100%")
+         .attr("height", h);
+         
+      india.attr("width", w)
+         .attr("height", h);
+
+
+/*//        .call(d3.behavior.zoom().on("zoom", redraw))
+         .call(initialize_scale);*/
+
+
+
+      india.selectAll("path")
+          .data(states1["features"])
+          .enter()
+            .append("path")
+            .classed("path",true)
+            .attr("d", path);
+
+      // add circles to svg
+      map.selectAll("circle")
+          .data(cities.features)
+          .enter()
+            .append("circle")
+            .classed("circle",true)
+
+      //update
+      india.selectAll(".path")
+            .attr("d", path);
+
+      map.selectAll(".circle")
+          .attr("cx", function (d) { return proj(d.geometry.coordinates)[0]; })
+          .attr("cy", function (d) { return proj(d.geometry.coordinates)[1]; })
+          .attr("r", function(d){return responseScale(+d.properties.jobs)})
+          .attr("fill", "#713be2")
+          .attr("stroke", "#2c3e50")
+          .attr("opacity","0.5")
+          .on("mouseover", function(d){
+            var str = "City: "+ d.properties.name +"<br> Jobs: " + d.properties.jobs;
+            d3.select(this).attr("r",function(d){return 2*responseScale(+d.properties.jobs)})
+            .transition()
+            .attr("opacity","1");
+            tooltip.html(str); return tooltip.style("visibility", "visible");})
+          .on("mousemove", function(){return tooltip.style("top", (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");})
+          .on("mouseout", function(){
+            d3.select(this)
+              .transition()
+              .attr("r",function(d){return responseScale(+d.properties.jobs)})
+              .attr("opacity","0.5");
+              return tooltip.style("visibility", "hidden");});
+
+        //exit
+        india.selectAll(".path")
+            .data(states1["features"])
+            .exit()
+              .remove();
+
+      map.selectAll(".circle")
+          .data(cities.features)
+          .exit()
+            .remove();
+
+
+
+
+    }
+    
+
+    function initialize_scale() {
+      console.log("inaiaiaia")
+      proj.scale(6700);
+      proj.translate([-1240, 746]);
+    }
+
+      function updateDimensions(winWidth) {
+
+          /*w = winWidth<700?winWidth-100:;*/
+          /*h = 600;
+          var scale = winWidth < 700?6700 - winWidth-1000:6700;
+          var x = winWidth < 700 ? -1240 + winWidth-300:-1240;
+          var y = winWidth < 700 ? 746 - winWidth+00:746;*/
+           /*w = window.innerWidth * .97;
+           h = 600;
+           console.log("aaa",w*6.5)
+           var scale = winWidth<650?5000:w*6.5;
+           proj
+              .scale(scale)
+              .translate([-w*2,h*1.05]);*/
+/*          proj.scale(scale);
+          proj.translate([x,y]);*/
+          
+          
+
+           w = window.innerWidth * .97;
+           h = 600;
+           var x;
+           if(winWidth < 550 )
+           {
+              x = xScaleSmaller(w);
+           }
+           else
+           {
+              x = xScaleBigger(w);
+           }
+           proj
+              .scale(graphScale(w))
+              .translate([x,yScale(w)]);
+
+
+      }
+
+    init();
+
+
+ window.onresize = render;
+
+    
+  
+
+    
+    
+   /*// This section should allow for zoom & pan.
+   function redraw() {
+      // d3.event.translate stores the current translation from the parent SVG element
+      // t stores the projection's default translation
+      // adding the x and y vales in each array to yields the projection's new translation
+      var tx = t[0] * d3.event.scale + d3.event.translate[0];
+      var ty = t[1] * d3.event.scale + d3.event.translate[1];
+      proj.translate([tx, ty]);
+      // determine the projection's new scale and redraw the map:
+      proj.scale(s * d3.event.scale); 
+      india.selectAll("path").attr("d", path);
+    }
+     // This section should color each state.
+var states = d3.select("svg").append("g")
+    .attr("id", "states")
+    .attr("class", "Blues");
+      data = wealth;
+      states.selectAll("path")
+        .attr("class", quantize);
+    
+    function quantize(d) {
+      return "q" + Math.min(8, ~~(data[d.id] * 9 / 12)) + "-9";
+    }*/
+
+  </script>
+</body>
+</html>
